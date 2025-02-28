@@ -1,49 +1,53 @@
 package com.example.CarDealer.Controllers;
 
 import com.example.CarDealer.Models.UserModel;
-import com.example.CarDealer.Repositories.UserRepository;
+import com.example.CarDealer.Repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/auth") // Base URL: localhost:8080/auth
 public class UserController {
 
     @Autowired
-    private UserRepository userRepository;
+    private UserRepository userRepo;
 
-    // Signup API
-    @PostMapping("/signup")
-    public ResponseEntity<?> signup(@RequestBody UserModel user) {
-        // Check if email already exists
-        if (userRepository.findByEmail(user.getEmail()).isPresent()) {
-            return ResponseEntity.badRequest().body("Email is already registered!");
+    @PostMapping("/signUp")
+    public ResponseEntity<Map<String,String>> signUp(@RequestBody UserModel user){
+        UserModel userObj = userRepo.save(user);
+
+        Map<String,String> response = new HashMap<>();
+
+        if(userObj.getUserid() != 0){
+            response.put("Status","Signup success");
+            response.put("User id",String.valueOf(userObj.getUserid()));
+            response.put("Name",String.valueOf(userObj.getName()));
+
         }
-
-        // Save user without password encryption
-        userRepository.save(user);
-        return ResponseEntity.ok("Signup successful!");
+        else{
+            response.put("Status","Signup failed!");
+        }
+        return ResponseEntity.ok(response);
     }
+    @PostMapping("/signIn")
+    public ResponseEntity<Map<String,String>> loginUser(@RequestBody UserModel user){
+        List<UserModel> userObj = userRepo.loginValidation(user.getEmail(),user.getPassword());
 
-    // Login API
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody UserModel loginUser) {
-        Optional<UserModel> userOptional = userRepository.findByEmail(loginUser.getEmail());
+        Map<String,String> response = new HashMap<>();
 
-        if (userOptional.isPresent()) {
-            UserModel user = userOptional.get();
-
-            // Check password without encryption
-            if (loginUser.getPassword().equals(user.getPassword())) {
-                return ResponseEntity.ok("Login successful!");
-            } else {
-                return ResponseEntity.badRequest().body("Invalid credentials!");
-            }
-        } else {
-            return ResponseEntity.badRequest().body("User not found!");
+        if(userObj.size() > 0){
+            response.put("Status","Sign in success");
+            response.put("User Id",String.valueOf(userObj.get(0).getUserid()));
+            response.put("Name",String.valueOf(userObj.get(0).getName()));
         }
+        else{
+            response.put("Status","Sign in failed");
+        }
+        return ResponseEntity.ok(response);
     }
 }
